@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="no">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="Author" content="Ditt navn" />
+    <link rel="icon" href="data:," />
+
+    <script defer src="javascript/deltager.js"></script>
+    <title>Deltagerhåndtering</title>
+    <link href="lab3.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    <h1>Deltagerhåndtering</h1>
+
+    <div id="root">
+        <fieldset class="registrering">
+            <legend>Registrer deltager</legend>
+            <div class="input">
+                <input type="text" placeholder="Fyll inn data for deltager" autocomplete="off" autofocus size="40">
+                <button type="button">Registrer deltager</button>
+            </div>
+            <div class="hidden resultat">Beste tid er til nå er <span></span>.</div>
+        </fieldset>
+
+        <fieldset class="deltager">
+            <legend>Finn deltager</legend>
+            <div class="input">
+                <input type="number" autocomplete="off" min="1" max="999">
+                <button type="button">Finn deltager</button>
+            </div>
+            <dl class="hidden resultatok">
+                <dt>Startnummer</dt>
+                <dd></dd>
+                <dt>Navn</dt>
+                <dd></dd>
+                <dt>Tid</dt>
+                <dd></dd>
+            </dl>
+            <p class="hidden resultatmangler">Ingen deltager funnet.</p>
+        </fieldset>
+
+        <fieldset class="statistikk">
+            <legend>Statistikk</legend>
+            <div class="input">
+                <label for="nedregrense">Fra: </label><input type="time" id="nedregrense" step="1">
+                <label for="ovregrense">Til: </label><input type="time" id="ovregrense" step="1">
+
+                <button type="button">Finn antall</button>
+            </div>
+            <p class="hidden resultat">Fant <span></span> deltagere i intervallet <span></span> til <span></span>.</p>
+        </fieldset>
+    </div>
+</body>
+
+</html>
