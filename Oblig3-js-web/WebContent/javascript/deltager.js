@@ -30,20 +30,24 @@ class DeltagerManager {
 
 	#finndeltager() {
 		const searchInput = this.#finndeltagerElm.querySelector("input");
-		const startnummer = parseInt(searchInput.value);
+		let startnummer = searchInput.value.trim(); // Remove leading/trailing whitespace
 		const resultContainer = this.#finndeltagerElm.querySelector(".resultatok");
 		const notFoundMessage = this.#finndeltagerElm.querySelector(".resultatmangler");
 
-		console.log("Searching for startnummer: " + startnummer);
+		// Hide previous results and the notFoundMessage at the start of the search
+		resultContainer.classList.add("hidden");
+		notFoundMessage.classList.add("hidden");
 
-		// Access your locally stored participant data (the array you created)
 		const participantDataArray = this.#registrerteDeltakere;
 
-		// Find the participant with the matching startnummer
+		const firstParticipant = participantDataArray[0];
+		if (firstParticipant && firstParticipant.startnummer.length > startnummer.length) {
+			startnummer = startnummer.padStart(firstParticipant.startnummer.length, "0");
+		}
+
 		const participantData = participantDataArray.find(participant => participant.startnummer === startnummer);
 
 		if (participantData) {
-			// Participant was found, populate the fields
 			resultContainer.classList.remove("hidden");
 			notFoundMessage.classList.add("hidden");
 
@@ -55,52 +59,109 @@ class DeltagerManager {
 			navnField.textContent = participantData.navn;
 			tidField.textContent = participantData.tid;
 		} else {
-			// Participant was not found, display the not found message and hide the result fields
 			notFoundMessage.classList.remove("hidden");
-			resultContainer.classList.add("hidden");
 		}
+
+		searchInput.value = '';
 	}
 
 
 	#beregnstatistikk() {
-		// Fyll inn kode        
+		const fraTidInput = this.#statElm.querySelector("#nedregrense");
+		const tilTidInput = this.#statElm.querySelector("#ovregrense");
+		const resultatMessage = this.#statElm.querySelector(".resultat");
+		const antallSpan = resultatMessage.querySelector("span:first-child");
+		const fraTidSpan = resultatMessage.querySelector("span:nth-child(2)");
+		const tilTidSpan = resultatMessage.querySelector("span:nth-child(3");
+
+		const calculateAntallDeltagere = (fraTid, tilTid) => {
+			return this.#registrerteDeltakere.filter(participant => isWithinTimeRange(participant.tid, fraTid, tilTid)).length;
+		};
+
+		const isWithinTimeRange = (participantTid, fraTid, tilTid) => {
+			const tid = participantTid.split(":");
+			const fraTidParts = fraTid.split(":");
+			const tilTidParts = tilTid.split(":");
+			const participantTimeInSeconds = parseInt(tid[0]) * 3600 + parseInt(tid[1]) * 60 + parseInt(tid[2]);
+			const fraTidInSeconds = parseInt(fraTidParts[0]) * 3600 + parseInt(fraTidParts[1]) * 60 + parseInt(fraTidParts[2]);
+			const tilTidInSeconds = parseInt(tilTidParts[0]) * 3600 + parseInt(tilTidParts[1]) * 60 + parseInt(tilTidParts[2]);
+
+			return participantTimeInSeconds >= fraTidInSeconds && participantTimeInSeconds <= tilTidInSeconds;
+		};
+
+		const fraTid = fraTidInput.value || "00:00:00";
+		const tilTid = tilTidInput.value || "23:59:59";
+
+		if (fraTidInput.checkValidity() && tilTidInput.checkValidity()) {
+			const fraTidInSeconds = this.timeToSeconds(fraTid);
+			const tilTidInSeconds = this.timeToSeconds(tilTid);
+
+			if (fraTidInSeconds <= tilTidInSeconds) {
+				const antallDeltagere = calculateAntallDeltagere(fraTid, tilTid);
+
+				antallSpan.textContent = antallDeltagere;
+				fraTidSpan.textContent = fraTid;
+				tilTidSpan.textContent = tilTid;
+				resultatMessage.classList.remove("hidden");
+				fraTidInput.setCustomValidity(""); 
+				fraTidInput.reportValidity(); 
+			} else {
+				fraTidInput.setCustomValidity("Tidspunktet 'Fra' må være mindre enn eller lik tidspunktet 'Til'.");
+				resultatMessage.classList.add("hidden");
+				fraTidInput.reportValidity();
+			}
+		} else {
+			resultatMessage.classList.add("hidden");
+		}
 	}
+
+	timeToSeconds(timeString) {
+		const timeParts = timeString.split(":");
+		const hours = parseInt(timeParts[0]);
+		const minutes = parseInt(timeParts[1]);
+		const seconds = parseInt(timeParts[2]);
+		return hours * 3600 + minutes * 60 + seconds;
+	}
+
 
 	#registrerdeltager() {
 		const inputElement = this.#regElm.querySelector("input");
 		const inputData = inputElement.value;
 
-		const tidReg = /(?:\d{0,2}:){2}\d{0,2}/g;
-		const startnummerReg = /\d{1,3}/g;
-		const navnReg = /\p{L}{2,}(?:-\p{L}{2,})?/gu;
+		const parts = inputData.split(" ");
 
-		const tidValid = inputData.match(tidReg);
-		const startnummerValid = inputData.match(startnummerReg);
-		const navnValid = inputData.match(navnReg);
+		let startnummer = "";
+		let tid = "";
+		let navn = "";
 
-		if (tidValid && startnummerValid && navnValid) {
-			const startnummer = startnummerValid[0];
-			const navn = navnValid
-				.map((part) =>
-					part.replace(/(^|-)(\p{L})/gu, (match) => match.toUpperCase())
-				)
-				.join(" ");
+		for (const part of parts) {
+			if (/^\d{1,3}$/.test(part) && !startnummer) {
+				startnummer = part;
+			} else if (/^\d{0,2}:\d{0,2}:\d{0,2}$/.test(part) && !tid) {
+				tid = part;
+			} else {
+				if (navn) {
+					navn += " " + part;
+				} else {
+					navn = part;
+				}
+			}
+		}
 
-			const tidParts = tidValid[0].split(":");
-
+		if (startnummer && navn && tid) {
+			const tidParts = tid.split(":");
 			if (tidParts.length === 3) {
 				const hours = tidParts[0].padStart(2, "0");
 				const minutes = tidParts[1].padStart(2, "0");
 				const seconds = tidParts[2].padStart(2, "0");
-
-				const tid = `${hours}:${minutes}:${seconds}`;
+				const formattedTid = `${hours}:${minutes}:${seconds}`;
 
 				this.#registrerteDeltakere.push({
 					startnummer,
 					navn,
-					tid,
+					tid: formattedTid,
 				});
-				this.updateBestTime(tid);
+				this.updateBestTime(formattedTid);
 				this.clearForm(inputElement);
 			} else {
 				this.displayErrorMessage("Slutt tid maa vaere i formatet timer:minutter:sekunder.");
@@ -110,6 +171,7 @@ class DeltagerManager {
 			inputElement.value = inputData;
 		}
 	}
+
 
 
 	updateBestTime(tid) {
